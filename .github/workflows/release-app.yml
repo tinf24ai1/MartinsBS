@@ -40,6 +40,9 @@ jobs:
         git push https://x-access-token:${{ secrets.RELEASE_TOKEN }}@github.com/${{ github.repository }} "$VERSION"
         echo "tag=$VERSION" >> $GITHUB_OUTPUT
         
+    - name: List APKs
+      run: find app/build/outputs -name "*.apk"
+
     - name: Check APK exists
       run: test -f app/build/outputs/apk/release/app-release.apk
 
