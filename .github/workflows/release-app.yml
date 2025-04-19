@@ -1,13 +1,15 @@
-name: Build & Publish APK
+name: Build, Tag & Release APK
 
 on:
-  workflow_dispatch:
   push:
-    tags:
-      - '*'
+    branches:
+      - release
+
+permissions:
+  contents: write  # Needed to push tags
 
 jobs:
-  build:
+  build-release:
     runs-on: ubuntu-latest
 
     steps:
@@ -27,9 +29,20 @@ jobs:
     - name: Build release APK
       run: ./gradlew assembleRelease
 
-    - name: Create Release
+    - name: Generate release tag
+      id: create_tag
+      run: |
+        VERSION="v$(date +'%Y.%m.%d.%H%M')"
+        git config user.name "github-actions"
+        git config user.email "github-actions@users.noreply.github.com"
+        git tag "$VERSION"
+        git push https://x-access-token:${{ secrets.RELEASE_TOKEN }}@github.com/${{ github.repository }} "$VERSION"
+        echo "tag=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Upload release to GitHub
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: ${{ steps.create_tag.outputs.tag }}
         files: app/build/outputs/apk/release/app-release.apk
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
