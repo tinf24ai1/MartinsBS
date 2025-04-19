@@ -44,7 +44,7 @@ jobs:
       run: find app/build/outputs -name "*.apk"
 
     - name: Check APK exists
-      run: test -f app/build/outputs/apk/release/app-release-unsigned.apk.apk
+      run: test -f app/build/outputs/apk/release/app-release-unsigned.apk
 
     - name: Upload release to GitHub
       uses: softprops/action-gh-release@v1
