@@ -39,6 +39,9 @@ jobs:
         git tag "$VERSION"
         git push https://x-access-token:${{ secrets.RELEASE_TOKEN }}@github.com/${{ github.repository }} "$VERSION"
         echo "tag=$VERSION" >> $GITHUB_OUTPUT
+        
+    - name: Check APK exists
+      run: test -f app/build/outputs/apk/release/app-release.apk
 
     - name: Upload release to GitHub
       uses: softprops/action-gh-release@v1
