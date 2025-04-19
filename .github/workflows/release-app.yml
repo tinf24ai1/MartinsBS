@@ -1,6 +1,7 @@
 name: Build, Tag & Release APK
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - release
