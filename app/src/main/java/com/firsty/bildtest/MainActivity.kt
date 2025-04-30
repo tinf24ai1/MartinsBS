@@ -1,24 +1,32 @@
 package com.firsty.bildtest
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
-import com.firsty.bildtest.ui.theme.BildTestTheme
-import com.firsty.bildtest.R
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+
+// Package Intern References
+import com.firsty.bildtest.ui.components.BottomSheet
+import com.firsty.bildtest.ui.theme.BildTestTheme
+import com.firsty.bildtest.viewmodel.ImageViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         setContent {
             BildTestTheme {
                 Surface(
@@ -32,18 +40,22 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+@SuppressLint("DefaultLocale")
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Slideshow() {
-    // List of image resource IDs
-    val imageList = listOf(
-        R.drawable.cat,
-        R.drawable.cat2,
-        R.drawable.cat3
+fun Slideshow(imageViewModel: ImageViewModel = ImageViewModel()) {
+    val imageList = imageViewModel.imageList
+
+    var currentIndex by remember { mutableIntStateOf(0) }
+    val scope = rememberCoroutineScope()
+
+    val sheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
     )
 
-    var currentIndex by remember { mutableStateOf(0) }
+    var showSheet by remember { mutableStateOf(false) }
 
-    // Auto-switch image every 5 seconds
+    // Auto-switch images every 5 seconds
     LaunchedEffect(Unit) {
         while (true) {
             delay(5000L)
@@ -51,18 +63,32 @@ fun Slideshow() {
         }
     }
 
-    Image(
-        painter = painterResource(id = imageList[currentIndex]),
-        contentDescription = "Slideshow image",
-        contentScale = ContentScale.Fit,
-        modifier = Modifier.fillMaxSize()
-    )
-}
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectVerticalDragGestures { _, dragAmount ->
+                    if (dragAmount < -50) { // Swipe up
+                        showSheet = true
+                        scope.launch {
+                            sheetState.show()
+                        }
+                    }
+                }
+            }
+    ) {
+        Image(
+            painter = painterResource(id = imageList[currentIndex]),
+            contentDescription = "Slideshow image",
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize()
+        )
 
-@Preview(showBackground = true)
-@Composable
-fun SlideshowPreview() {
-    BildTestTheme {
-        Slideshow()
+        if (showSheet) {
+            BottomSheet(imageViewModel, sheetState) {
+                showSheet = false
+                scope.launch { sheetState.hide() }
+            }
+        }
     }
 }
