@@ -40,7 +40,7 @@ android {
 }
 
 dependencies {
-
+    implementation("sh.calvin.reorderable:reorderable:2.4.3")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
