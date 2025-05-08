@@ -22,10 +22,10 @@ class ImageViewModel : ViewModel() {
         _imageList = newList
     }
 
-    fun updateImageListAfterDragAndDrop(fromIndex: Int, toIndex: Int) {
-        val mutableList = _imageList.toMutableList()
-        val item = mutableList.removeAt(fromIndex)
-        mutableList.add(toIndex, item)
-        _imageList = mutableList
-    }
+//    fun updateImageListAfterDragAndDrop(fromIndex: Int, toIndex: Int) {
+//        val mutableList = _imageList.toMutableList()
+//        val item = mutableList.removeAt(fromIndex)
+//        mutableList.add(toIndex, item)
+//        _imageList = mutableList
+//    }
 }

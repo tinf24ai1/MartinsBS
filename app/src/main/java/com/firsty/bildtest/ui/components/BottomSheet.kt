@@ -1,6 +1,7 @@
 package com.firsty.bildtest.ui.components
 
 import android.annotation.SuppressLint
+import android.graphics.Insets.add
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -42,11 +43,25 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.firsty.bildtest.viewmodel.ImageViewModel
 import sh.calvin.reorderable.*
+import com.firsty.bildtest.ui.haptics.*
 import android.util.Log
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.material.icons.automirrored.rounded.List
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material3.Card
 import androidx.compose.material3.IconButton
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
+import com.firsty.bildtest.viewmodel.items
 import kotlin.text.get
+//import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.rounded.List
 
 
 @SuppressLint("DefaultLocale")
@@ -105,20 +120,19 @@ fun BottomSheet(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // Begin Picture-Grid
+                // <--- Begin Picture-Grid --->
+                val haptic = rememberReorderHapticFeedback()
 
-                val imagesToShow: List<Int> = imageList.take(8)
-//                if (imagesToShow.isNotEmpty()) {
-//                    val context = LocalContext.current
-//                    Log.d("BottomSheet", "Resource Name: ${context.resources.getResourceName(imagesToShow[0])}")
-//                }
-
-                    val context = LocalContext.current
+                var list by remember { mutableStateOf(items) }
 
                 val lazyGridState = rememberLazyGridState()
-                val reorderableLazyGridState = rememberReorderableLazyGridState(lazyGridState) { from, to ->
-                    imageViewModel.updateImageListAfterDragAndDrop(from.index, to.index)
-                }
+                val reorderableLazyGridState =
+                    rememberReorderableLazyGridState(lazyGridState) { from, to ->
+                        list = list.toMutableList().apply {
+                            add(to.index, removeAt(from.index))
+                        }
+                        haptic.performHapticFeedback(ReorderHapticFeedbackType.MOVE)
+                    }
 
                 LazyVerticalGrid(
                     state = lazyGridState,
@@ -129,69 +143,106 @@ fun BottomSheet(
                         .padding(10.dp),
                     userScrollEnabled = true // Scrollen aktiviert
                 ) {
-                    items(imagesToShow.size, key = { imagesToShow[it] }) { index ->
-                        val imageResId = imagesToShow[index]
-                        ReorderableItem(
-                            reorderableLazyGridState,
-                            key = imageResId
-                        ) { isDragging ->
-                            Box(
+                    itemsIndexed(list, key = { _, item -> item.id }) { index, item ->
+                        ReorderableItem(reorderableLazyGridState, item.id) {
+                            val interactionSource = remember { MutableInteractionSource() }
+                            Card(
+                                onClick = {},
                                 modifier = Modifier
-                                    .padding(4.dp)
-                                    .fillMaxWidth()
-                                    .aspectRatio(1f)
-                                    .clip(RoundedCornerShape(12.dp))
-                                    .background(
-                                        if (isDragging) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
-                                        else MaterialTheme.colorScheme.surface
-                                    )
+                                    .height(96.dp)
+                                    .semantics {
+                                        customActions = listOf(
+                                            CustomAccessibilityAction(
+                                                label = "Move Before",
+                                                action = {
+                                                    if (index > 0) {
+                                                        list = list.toMutableList().apply {
+                                                            add(index - 1, removeAt(index))
+                                                        }
+                                                        true
+                                                    } else {
+                                                        false
+                                                    }
+                                                }
+                                            ),
+
+                                            CustomAccessibilityAction(
+                                                label = "Move After",
+                                                action = {
+                                                    if (index < list.size - 1) {
+                                                        list = list.toMutableList().apply {
+                                                            add(index + 1, removeAt(index))
+                                                        }
+                                                        true
+                                                    } else {
+                                                        false
+                                                    }
+                                                }
+                                            ),
+                                        )
+                                    },
+                                interactionSource = interactionSource,
                             ) {
-                                Image(
-                                    painter = painterResource(id = imageResId),
-                                    contentDescription = "Image",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.fillMaxSize()
-                                )
-                                IconButton(
-                                    modifier = Modifier
-                                        .draggableHandle()
-                                        .align(Alignment.TopEnd), // Positionierung des Drag-Handles
-                                    onClick = {
-                                        Log.d("IconButton", "Button wurde geklickt")
+                                Box(Modifier.fillMaxSize()) {
+                                    IconButton(
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .draggableHandle(
+                                                onDragStarted = {
+                                                    haptic.performHapticFeedback(
+                                                        ReorderHapticFeedbackType.START
+                                                    )
+                                                },
+                                                onDragStopped = {
+                                                    haptic.performHapticFeedback(
+                                                        ReorderHapticFeedbackType.END
+                                                    )
+                                                },
+                                                interactionSource = interactionSource,
+                                            )
+                                            .clearAndSetSemantics { },
+                                        onClick = {},
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Rounded.List,
+                                            //Icons.Rounded.DragHandle,
+                                            contentDescription = "Reorder"
+                                        )
                                     }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Drag Handle"
+                                    Text(
+                                        item.text,
+                                        Modifier.align(Alignment.Center).padding(horizontal = 8.dp),
+                                        textAlign = TextAlign.Center,
                                     )
                                 }
                             }
                         }
                     }
                 }
-                    // End Picture-Grid
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Text(
-                        text = "Animation Speed",
-                        style = MaterialTheme.typography.bodyLarge,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-                    Text(
-                        text = "${String.format("%.1f", sliderValue)}x",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(bottom = 4.dp)
-                    )
-
-                    Slider(
-                        value = sliderValue,
-                        onValueChange = { newValue -> sliderValue = newValue },
-                        valueRange = 0.5f..3.0f,
-                        steps = 4,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
             }
+            // <--- End Picture-Grid --->
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text(
+                text = "Animation Speed",
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+            Text(
+                text = "${String.format("%.1f", sliderValue)}x",
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+
+            Slider(
+                value = sliderValue,
+                onValueChange = { newValue -> sliderValue = newValue },
+                valueRange = 0.5f..3.0f,
+                steps = 4,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
+}
+
