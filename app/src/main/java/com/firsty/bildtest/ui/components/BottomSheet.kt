@@ -58,9 +58,9 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import com.firsty.bildtest.viewmodel.items
+import com.firsty.bildtest.viewmodel.*
 import kotlin.text.get
-//import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material.icons.rounded.List
 
 
@@ -122,9 +122,7 @@ fun BottomSheet(
 
                 // <--- Begin Picture-Grid --->
                 val haptic = rememberReorderHapticFeedback()
-
                 var list by remember { mutableStateOf(items) }
-
                 val lazyGridState = rememberLazyGridState()
                 val reorderableLazyGridState =
                     rememberReorderableLazyGridState(lazyGridState) { from, to ->
@@ -203,11 +201,7 @@ fun BottomSheet(
                                             .clearAndSetSemantics { },
                                         onClick = {},
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.AutoMirrored.Rounded.List,
-                                            //Icons.Rounded.DragHandle,
-                                            contentDescription = "Reorder"
-                                        )
+                                        Icon(imageVector = Icons.Rounded.DragHandle, contentDescription = "Drag Handle")
                                     }
                                     Text(
                                         item.text,
@@ -219,7 +213,7 @@ fun BottomSheet(
                         }
                     }
                 }
-            }
+
             // <--- End Picture-Grid --->
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -244,5 +238,5 @@ fun BottomSheet(
             )
         }
     }
-}
+}}
 
