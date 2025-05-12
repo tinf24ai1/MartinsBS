@@ -203,10 +203,14 @@ fun BottomSheet(
                                     ) {
                                         Icon(imageVector = Icons.Rounded.DragHandle, contentDescription = "Drag Handle")
                                     }
-                                    Text(
-                                        item.text,
-                                        Modifier.align(Alignment.Center).padding(horizontal = 8.dp),
-                                        textAlign = TextAlign.Center,
+                                    Image(
+                                        painter = painterResource(id = item.id),
+                                        contentDescription = item.text,
+                                        modifier = Modifier
+                                            .align(Alignment.Center)
+                                            .padding(horizontal = 8.dp)
+                                            .size(64.dp),
+                                        contentScale = ContentScale.Crop
                                     )
                                 }
                             }
