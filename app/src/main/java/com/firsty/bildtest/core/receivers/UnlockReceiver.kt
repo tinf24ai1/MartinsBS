@@ -7,19 +7,23 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 
-class BootUpReceiver : BroadcastReceiver() {
+
+//
+// NOT RECEIVABLE BY APPS STARTED BY THE USER (Implicit receivers)
+//
+class UnlockReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-            Log.i("BootUpReceiver", "Device booted, starting app with Receiver-PID " + android.os.Process.myPid())
+        if (intent.action == Intent.ACTION_USER_PRESENT) {
+            Log.i("UnlockReceiver", "Device unlocked, starting app with Receiver-PID " + android.os.Process.myPid())
             val openAppIntent = Intent(context, MainActivity::class.java)
             openAppIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            // Might be impossible to start the app from a broadcast receiver
+
             try {
                 context.startActivity(openAppIntent)
             } catch (e: ActivityNotFoundException) {
-                Log.e("BootUpReceiver", "Failed to start app: ${e.message}")
+                Log.e("UnlockReceiver", "Activity not found trying to start app: ${e.message}")
             } catch (e: Exception) {
-                Log.e("BootUpReceiver", "An unexpected error occurred: ${e.message}")
+                Log.e("UnlockReceiver", "Unknown error trying to start app: ${e.message}")
             }
         }
     }

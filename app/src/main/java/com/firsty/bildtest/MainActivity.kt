@@ -2,6 +2,7 @@ package com.firsty.bildtest
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -29,6 +30,7 @@ import com.firsty.bildtest.viewmodel.ImageViewModel
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Log.i("MainActivity", "starting app with PID " + android.os.Process.myPid())
 
         // App in Fullscreen anzeigen
         val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
