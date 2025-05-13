@@ -34,12 +34,5 @@
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
-        <!-- receiver android:enabled="true" android:name=".core.receivers.UnlockReceiver"
-            android:exported="false">
-            <intent-filter>
-                <action android:name="android.intent.action.USER_PRESENT" />
-                <category android:name="android.intent.category.DEFAULT" />
-            </intent-filter>
-        </receiver -->
     </application>
 </manifest>
