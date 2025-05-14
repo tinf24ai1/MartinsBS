@@ -1,10 +1,13 @@
 package com.firsty.bildtest
 
 import android.annotation.SuppressLint
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
@@ -16,6 +19,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -26,6 +30,11 @@ import kotlinx.coroutines.launch
 import com.firsty.bildtest.ui.components.BottomSheet
 import com.firsty.bildtest.ui.theme.BildTestTheme
 import com.firsty.bildtest.viewmodel.ImageViewModel
+
+// TODO: App crashes on automatic startup (BildTest keeps stopping)
+// TODO: Notification isn't displayed, even though manually enabled
+// TODO: NotificationManager isn't displayed
+// TODO: Check and fix errors and warnings in Logcat
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,6 +57,34 @@ class MainActivity : ComponentActivity() {
                 ) {
                     Slideshow()
                 }
+            }
+        }
+
+        // Berechtigungen von User anfordern
+        requestNotificationPermission()
+    }
+
+    // Berechtigungs-Launcher konfigurieren
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted:Boolean ->
+        if (isGranted) {
+            Log.d("MainActivity", "Permission granted")
+        } else {
+            // TODO: Popup anzeigen, dass die Berechtigung benötigt wird, damit die APP autostarten kann
+            Log.d("MainActivity", "Permission denied")
+        }
+    }
+
+    // Berechtigungen für "Nachrichten anzeigen" anfordern
+    private fun requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                this,
+                android.Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }

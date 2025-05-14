@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <!-- Permissions (add ones for image picking below later) -->
+
+    <!-- Permissions (TODO: add permissions for image picking below later) -->
+    <!-- Needed for detecting device boot and autostarting the app -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
 
     <application
         android:allowBackup="true"
@@ -14,6 +19,7 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.BildTest"
         tools:targetApi="31">
+
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -25,13 +31,21 @@
             </intent-filter>
         </activity>
 
+        <!-- Services -->
+        <!-- Foreground Service for UnlockReceiver: dataSync is only valid type without extra permissions that fits what the
+            App is doing, when downloading/uploading data in the service, use WorkManager and setForegroundAsync() instead!-->
+        <service
+            android:name=".core.services.UnlockReceiverService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync"
+            tools:ignore="ForegroundServicePermission" />
+
         <!-- Broadcast Receivers -->
         <receiver android:enabled="true" android:name=".core.receivers.BootUpReceiver"
-            android:exported="false"
+            android:exported="true"
             android:permission="android.permission.RECEIVE_BOOT_COMPLETED">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </receiver>
     </application>
