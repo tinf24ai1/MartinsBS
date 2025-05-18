@@ -1,15 +1,12 @@
 package com.firsty.bildtest.ui.components
 
 import android.annotation.SuppressLint
-import android.graphics.Insets.add
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -18,7 +15,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.BottomSheetDefaults.DragHandle
@@ -36,44 +32,34 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.firsty.bildtest.viewmodel.ImageViewModel
 import sh.calvin.reorderable.*
 import com.firsty.bildtest.ui.haptics.*
-import android.util.Log
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.grid.itemsIndexed
-import androidx.compose.material.icons.automirrored.rounded.List
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Card
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import com.firsty.bildtest.viewmodel.*
-import kotlin.text.get
 import androidx.compose.material.icons.rounded.DragHandle
-import androidx.compose.material.icons.rounded.List
+import androidx.compose.ui.zIndex
 
 
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomSheet(
-    imageViewModel: ImageViewModel,
     sheetState: SheetState,
     onClose: () -> Unit
 ) {
-
-    val imageList = imageViewModel.imageList
+    val imageList = items
 
     ModalBottomSheet(
         onDismissRequest = onClose,
@@ -122,7 +108,7 @@ fun BottomSheet(
 
                 // <--- Begin Picture-Grid --->
                 val haptic = rememberReorderHapticFeedback()
-                var list by remember { mutableStateOf(items) }
+                var list by remember { mutableStateOf(imageList) }
                 val lazyGridState = rememberLazyGridState()
                 val reorderableLazyGridState =
                     rememberReorderableLazyGridState(lazyGridState) { from, to ->
@@ -139,7 +125,7 @@ fun BottomSheet(
                         .fillMaxWidth()
                         .height((100.dp * 2))
                         .padding(10.dp),
-                    userScrollEnabled = true // Scrollen aktiviert
+                    userScrollEnabled = true
                 ) {
                     itemsIndexed(list, key = { _, item -> item.id }) { index, item ->
                         ReorderableItem(reorderableLazyGridState, item.id) {
@@ -163,7 +149,6 @@ fun BottomSheet(
                                                     }
                                                 }
                                             ),
-
                                             CustomAccessibilityAction(
                                                 label = "Move After",
                                                 action = {
@@ -182,9 +167,19 @@ fun BottomSheet(
                                 interactionSource = interactionSource,
                             ) {
                                 Box(Modifier.fillMaxSize()) {
+                                    Image(
+                                        painter = painterResource(id = item.id),
+                                        contentDescription = item.text,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .padding(horizontal = 8.dp),
+                                        contentScale = ContentScale.Crop
+                                    )
+
                                     IconButton(
                                         modifier = Modifier
                                             .align(Alignment.TopEnd)
+                                            .zIndex(1f)
                                             .draggableHandle(
                                                 onDragStarted = {
                                                     haptic.performHapticFeedback(
@@ -201,46 +196,43 @@ fun BottomSheet(
                                             .clearAndSetSemantics { },
                                         onClick = {},
                                     ) {
-                                        Icon(imageVector = Icons.Rounded.DragHandle, contentDescription = "Drag Handle")
+                                        Icon(
+                                            imageVector = Icons.Rounded.DragHandle,
+                                            contentDescription = "Drag Handle",
+                                            tint = MaterialTheme.colorScheme.onBackground,
+                                            modifier = Modifier.size(24.dp),
+                                        )
                                     }
-                                    Image(
-                                        painter = painterResource(id = item.id),
-                                        contentDescription = item.text,
-                                        modifier = Modifier
-                                            .align(Alignment.Center)
-                                            .padding(horizontal = 8.dp)
-                                            .size(64.dp),
-                                        contentScale = ContentScale.Crop
-                                    )
                                 }
                             }
                         }
                     }
                 }
 
-            // <--- End Picture-Grid --->
+                // <--- End Picture-Grid --->
 
-            Spacer(modifier = Modifier.height(32.dp))
 
-            Text(
-                text = "Animation Speed",
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
-            Text(
-                text = "${String.format("%.1f", sliderValue)}x",
-                style = MaterialTheme.typography.bodySmall,
-                modifier = Modifier.padding(bottom = 4.dp)
-            )
+                Spacer(modifier = Modifier.height(32.dp))
 
-            Slider(
-                value = sliderValue,
-                onValueChange = { newValue -> sliderValue = newValue },
-                valueRange = 0.5f..3.0f,
-                steps = 4,
-                modifier = Modifier.fillMaxWidth()
-            )
+                Text(
+                    text = "Animation Speed",
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+                Text(
+                    text = "${String.format("%.1f", sliderValue)}x",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(bottom = 4.dp)
+                )
+
+                Slider(
+                    value = sliderValue,
+                    onValueChange = { newValue -> sliderValue = newValue },
+                    valueRange = 0.5f..3.0f,
+                    steps = 4,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
-}}
-
+}

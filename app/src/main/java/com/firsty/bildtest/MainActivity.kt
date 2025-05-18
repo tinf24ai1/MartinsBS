@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -24,7 +23,7 @@ import kotlinx.coroutines.launch
 // Package Intern References
 import com.firsty.bildtest.ui.components.BottomSheet
 import com.firsty.bildtest.ui.theme.BildTestTheme
-import com.firsty.bildtest.viewmodel.ImageViewModel
+import com.firsty.bildtest.viewmodel.items
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,8 +53,8 @@ class MainActivity : ComponentActivity() {
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Slideshow(imageViewModel: ImageViewModel = ImageViewModel()) {
-    val imageList = imageViewModel.imageList
+fun Slideshow() {
+    val imageList = items
 
     var currentIndex by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
@@ -89,17 +88,17 @@ fun Slideshow(imageViewModel: ImageViewModel = ImageViewModel()) {
             }
     ) {
         Image(
-            painter = painterResource(id = imageList[currentIndex]),
-            contentDescription = "Slideshow image",
+            painter = painterResource(id = imageList[currentIndex].id),
+            contentDescription = imageList[currentIndex].text,
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize()
         )
 
         if (showSheet) {
-            BottomSheet(imageViewModel, sheetState) {
+            BottomSheet(sheetState = sheetState, onClose = {
                 showSheet = false
                 scope.launch { sheetState.hide() }
-            }
+            })
         }
     }
 }
