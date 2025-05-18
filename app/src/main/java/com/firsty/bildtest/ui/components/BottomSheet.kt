@@ -49,6 +49,9 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import com.firsty.bildtest.viewmodel.*
 import androidx.compose.material.icons.rounded.DragHandle
+import androidx.compose.material3.CardDefaults
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.zIndex
 
 
@@ -61,6 +64,7 @@ fun BottomSheet(
 ) {
     val imageList = items
 
+    // bottom sheet
     ModalBottomSheet(
         onDismissRequest = onClose,
         sheetState = sheetState,
@@ -69,6 +73,7 @@ fun BottomSheet(
             DragHandle()
         }
     ) {
+        // screen height for dynamic height
         val screenHeight = LocalConfiguration.current.screenHeightDp.dp
         var sliderValue by remember { mutableFloatStateOf(1.0f) }
         Box(
@@ -80,6 +85,7 @@ fun BottomSheet(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
+                // header for bottom sheet
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Start,
@@ -100,16 +106,18 @@ fun BottomSheet(
                     )
                 }
 
+                // headline for image grid
                 Text(
                     text = "Selected Images",
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // <--- Begin Picture-Grid --->
+                // image grid with reorderable items
                 val haptic = rememberReorderHapticFeedback()
                 var list by remember { mutableStateOf(imageList) }
                 val lazyGridState = rememberLazyGridState()
+                // logic for reordering items
                 val reorderableLazyGridState =
                     rememberReorderableLazyGridState(lazyGridState) { from, to ->
                         list = list.toMutableList().apply {
@@ -127,14 +135,20 @@ fun BottomSheet(
                         .padding(10.dp),
                     userScrollEnabled = true
                 ) {
+                    // function iterates over the list and displays items; item.id is the key; each item is a picture
                     itemsIndexed(list, key = { _, item -> item.id }) { index, item ->
+                        // makes the current item reorderable
                         ReorderableItem(reorderableLazyGridState, item.id) {
                             val interactionSource = remember { MutableInteractionSource() }
+                            // UI element for each picture
                             Card(
                                 onClick = {},
                                 modifier = Modifier
+                                    .shadow(3.dp, shape = MaterialTheme.shapes.medium)
                                     .height(96.dp)
+                                    .padding(1.dp) // Abstand zwischen den Cards
                                     .semantics {
+                                        // accessibility actions, not necessary for basic functionality
                                         customActions = listOf(
                                             CustomAccessibilityAction(
                                                 label = "Move Before",
@@ -165,17 +179,26 @@ fun BottomSheet(
                                         )
                                     },
                                 interactionSource = interactionSource,
+                                shape = MaterialTheme.shapes.medium,
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                ),
                             ) {
+                                // box that fills the card element and contains image and drag icon
                                 Box(Modifier.fillMaxSize()) {
+                                    // image which is shown in the box
                                     Image(
                                         painter = painterResource(id = item.id),
                                         contentDescription = item.text,
                                         modifier = Modifier
                                             .fillMaxSize()
-                                            .padding(horizontal = 8.dp),
-                                        contentScale = ContentScale.Crop
+                                            //.padding(2.dp)
+                                            .clip(MaterialTheme.shapes.medium),
+                                            //.border(1.dp, MaterialTheme.colorScheme.primary),
+                                    contentScale = ContentScale.Crop
                                     )
 
+                                    // IconButton which is used to drag the item
                                     IconButton(
                                         modifier = Modifier
                                             .align(Alignment.TopEnd)
@@ -196,11 +219,12 @@ fun BottomSheet(
                                             .clearAndSetSemantics { },
                                         onClick = {},
                                     ) {
+                                        // actual drag icon
                                         Icon(
                                             imageVector = Icons.Rounded.DragHandle,
                                             contentDescription = "Drag Handle",
                                             tint = MaterialTheme.colorScheme.onBackground,
-                                            modifier = Modifier.size(24.dp),
+                                            modifier = Modifier.size(25.dp),
                                         )
                                     }
                                 }
@@ -209,22 +233,24 @@ fun BottomSheet(
                     }
                 }
 
-                // <--- End Picture-Grid --->
-
-
+                // gap below grid
                 Spacer(modifier = Modifier.height(32.dp))
 
+                // animation speed slider headline
                 Text(
                     text = "Animation Speed",
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
+
+                // current slider value
                 Text(
                     text = "${String.format("%.1f", sliderValue)}x",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(bottom = 4.dp)
                 )
 
+                // actual slider
                 Slider(
                     value = sliderValue,
                     onValueChange = { newValue -> sliderValue = newValue },

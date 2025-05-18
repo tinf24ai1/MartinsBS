@@ -54,15 +54,19 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Slideshow() {
+    // using images from items.kt
     val imageList = items
 
+    // keeping track of current image index
     var currentIndex by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
 
+    // manage state of bottom sheet
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
 
+    // state of the bottom sheets visibility
     var showSheet by remember { mutableStateOf(false) }
 
     // Auto-switch images every 5 seconds
@@ -76,9 +80,10 @@ fun Slideshow() {
     Box(
         modifier = Modifier
             .fillMaxSize()
+            // detect vertical drag gestures to show the bottom sheet
             .pointerInput(Unit) {
                 detectVerticalDragGestures { _, dragAmount ->
-                    if (dragAmount < -50) { // Swipe up
+                    if (dragAmount < -50) {
                         showSheet = true
                         scope.launch {
                             sheetState.show()
@@ -87,13 +92,17 @@ fun Slideshow() {
                 }
             }
     ) {
+        // displayed image
         Image(
+            // show image at current index
             painter = painterResource(id = imageList[currentIndex].id),
+            // content description for accessibility
             contentDescription = imageList[currentIndex].text,
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize()
         )
 
+        // show bottom sheet
         if (showSheet) {
             BottomSheet(sheetState = sheetState, onClose = {
                 showSheet = false
