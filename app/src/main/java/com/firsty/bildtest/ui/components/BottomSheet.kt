@@ -59,10 +59,10 @@ import androidx.compose.ui.zIndex
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BottomSheet(
+    viewModel: ImageViewModel,
     sheetState: SheetState,
     onClose: () -> Unit
 ) {
-    val imageList = items
 
     // bottom sheet
     ModalBottomSheet(
@@ -115,16 +115,18 @@ fun BottomSheet(
 
                 // image grid with reorderable items
                 val haptic = rememberReorderHapticFeedback()
-                var list by remember { mutableStateOf(imageList) }
+                val list = viewModel.items
+
                 val lazyGridState = rememberLazyGridState()
                 // logic for reordering items
                 val reorderableLazyGridState =
                     rememberReorderableLazyGridState(lazyGridState) { from, to ->
-                        list = list.toMutableList().apply {
+                        viewModel.updateItems(list.toMutableList().apply {
                             add(to.index, removeAt(from.index))
-                        }
+                        })
                         haptic.performHapticFeedback(ReorderHapticFeedbackType.MOVE)
                     }
+
 
                 LazyVerticalGrid(
                     state = lazyGridState,
@@ -138,7 +140,7 @@ fun BottomSheet(
                     // function iterates over the list and displays items; item.id is the key; each item is a picture
                     itemsIndexed(list, key = { _, item -> item.id }) { index, item ->
                         // makes the current item reorderable
-                        ReorderableItem(reorderableLazyGridState, item.id) {
+                        ReorderableItem(reorderableLazyGridState, item.id) { isDragging ->
                             val interactionSource = remember { MutableInteractionSource() }
                             // UI element for each picture
                             Card(
@@ -154,26 +156,22 @@ fun BottomSheet(
                                                 label = "Move Before",
                                                 action = {
                                                     if (index > 0) {
-                                                        list = list.toMutableList().apply {
+                                                        viewModel.updateItems(list.toMutableList().apply {
                                                             add(index - 1, removeAt(index))
-                                                        }
+                                                        })
                                                         true
-                                                    } else {
-                                                        false
-                                                    }
+                                                    } else false
                                                 }
                                             ),
                                             CustomAccessibilityAction(
                                                 label = "Move After",
                                                 action = {
                                                     if (index < list.size - 1) {
-                                                        list = list.toMutableList().apply {
+                                                        viewModel.updateItems(list.toMutableList().apply {
                                                             add(index + 1, removeAt(index))
-                                                        }
+                                                        })
                                                         true
-                                                    } else {
-                                                        false
-                                                    }
+                                                    } else false
                                                 }
                                             ),
                                         )

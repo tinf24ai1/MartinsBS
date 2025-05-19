@@ -42,6 +42,7 @@ android {
 dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("sh.calvin.reorderable:reorderable:2.4.3")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)

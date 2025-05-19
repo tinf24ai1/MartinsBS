@@ -19,11 +19,12 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 // Package Intern References
 import com.firsty.bildtest.ui.components.BottomSheet
 import com.firsty.bildtest.ui.theme.BildTestTheme
-import com.firsty.bildtest.viewmodel.items
+import com.firsty.bildtest.viewmodel.ImageViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,9 +54,9 @@ class MainActivity : ComponentActivity() {
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Slideshow() {
+fun Slideshow(viewModel: ImageViewModel = viewModel()) {
     // using images from items.kt
-    val imageList = items
+    val list = viewModel.items
 
     // keeping track of current image index
     var currentIndex by remember { mutableIntStateOf(0) }
@@ -73,7 +74,7 @@ fun Slideshow() {
     LaunchedEffect(Unit) {
         while (true) {
             delay(5000L)
-            currentIndex = (currentIndex + 1) % imageList.size
+            currentIndex = (currentIndex + 1) % list.size
         }
     }
 
@@ -95,16 +96,16 @@ fun Slideshow() {
         // displayed image
         Image(
             // show image at current index
-            painter = painterResource(id = imageList[currentIndex].id),
+            painter = painterResource(id = list[currentIndex].id),
             // content description for accessibility
-            contentDescription = imageList[currentIndex].text,
+            contentDescription = list[currentIndex].text,
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize()
         )
 
         // show bottom sheet
         if (showSheet) {
-            BottomSheet(sheetState = sheetState, onClose = {
+            BottomSheet(viewModel= viewModel, sheetState = sheetState, onClose = {
                 showSheet = false
                 scope.launch { sheetState.hide() }
             })
