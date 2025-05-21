@@ -71,12 +71,13 @@ fun Slideshow(viewModel: ImageViewModel = viewModel()) {
     var showSheet by remember { mutableStateOf(false) }
 
     // Auto-switch images every 5 seconds
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel.cycleInterval) {
         while (true) {
-            delay(5000L)
+            delay(viewModel.cycleInterval * 1000L) //  Sliderwert verwenden
             currentIndex = (currentIndex + 1) % list.size
         }
     }
+
 
     Box(
         modifier = Modifier

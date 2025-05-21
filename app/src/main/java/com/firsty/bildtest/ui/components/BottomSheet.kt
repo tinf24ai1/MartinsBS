@@ -50,9 +50,12 @@ import androidx.compose.ui.semantics.semantics
 import com.firsty.bildtest.viewmodel.*
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.CardDefaults
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.zIndex
+import com.firsty.bildtest.ui.components.IntervalSlider
+
 
 
 @SuppressLint("DefaultLocale")
@@ -75,7 +78,8 @@ fun BottomSheet(
     ) {
         // screen height for dynamic height
         val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-        var sliderValue by remember { mutableFloatStateOf(1.0f) }
+
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -234,28 +238,14 @@ fun BottomSheet(
                 // gap below grid
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // animation speed slider headline
-                Text(
-                    text = "Animation Speed",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(bottom = 4.dp)
+                //Interval slider logic in IntervaSlider.kt
+                IntervalSlider(
+                    currentInterval = viewModel.cycleInterval,
+                    onIntervalChange = { viewModel.cycleInterval = it }
                 )
 
-                // current slider value
-                Text(
-                    text = "${String.format("%.1f", sliderValue)}x",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
 
-                // actual slider
-                Slider(
-                    value = sliderValue,
-                    onValueChange = { newValue -> sliderValue = newValue },
-                    valueRange = 0.5f..3.0f,
-                    steps = 4,
-                    modifier = Modifier.fillMaxWidth()
-                )
+
             }
         }
     }

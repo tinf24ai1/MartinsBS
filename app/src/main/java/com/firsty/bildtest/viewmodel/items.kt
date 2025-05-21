@@ -24,4 +24,7 @@ class ImageViewModel : ViewModel() {
     fun updateItems(newList: List<Item>) {
         _items = newList
     }
+
+    var cycleInterval by mutableStateOf(10) // Standard: 10 Sekunden
+
 }
