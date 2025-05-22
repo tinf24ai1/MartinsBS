@@ -40,6 +40,7 @@ import sh.calvin.reorderable.*
 import com.firsty.bildtest.ui.haptics.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Card
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.mutableStateOf
@@ -55,7 +56,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.zIndex
 import com.firsty.bildtest.ui.components.IntervalSlider
-
+import com.firsty.bildtest.ui.components.TransitionType
+import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Opacity
+import androidx.compose.material.icons.filled.Slideshow
+import androidx.compose.material.icons.filled.ViewCarousel
 
 
 @SuppressLint("DefaultLocale")
@@ -243,6 +249,24 @@ fun BottomSheet(
                     currentInterval = viewModel.cycleInterval,
                     onIntervalChange = { viewModel.cycleInterval = it }
                 )
+
+                // transition type selection
+                val selectedTransition = viewModel.transitionType
+
+
+                TransitionType(
+                    selectedIndex = selectedTransition,
+                    onSelectedChange = { viewModel.transitionType = it },
+                    icons = listOf(
+                        Icons.Filled.Slideshow,     // instant
+                        Icons.Filled.Opacity,       // fade
+                        Icons.Filled.ViewCarousel   // slide
+                    ),
+                    labels = listOf("Instant", "Fade", "Slide")
+                )
+
+
+
 
 
 
