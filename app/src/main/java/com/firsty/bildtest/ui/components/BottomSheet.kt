@@ -70,7 +70,6 @@ fun BottomSheet(
     onClose: () -> Unit
 ) {
 
-    val imageList = imageViewModel.imageList
     var showHelpDialog by remember { mutableStateOf(false) }
 
     ModalBottomSheet(
