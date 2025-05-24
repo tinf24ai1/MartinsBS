@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Help
 import androidx.compose.material3.BottomSheetDefaults.DragHandle
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -36,6 +36,14 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import com.firsty.bildtest.viewmodel.ImageViewModel
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.clickable
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.platform.LocalContext
 import sh.calvin.reorderable.*
 import com.firsty.bildtest.ui.haptics.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -47,13 +55,11 @@ import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
-import com.firsty.bildtest.viewmodel.*
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.CardDefaults
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.zIndex
-
 
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -64,7 +70,8 @@ fun BottomSheet(
     onClose: () -> Unit
 ) {
 
-    // bottom sheet
+    var showHelpDialog by remember { mutableStateOf(false) }
+
     ModalBottomSheet(
         onDismissRequest = onClose,
         sheetState = sheetState,
@@ -97,13 +104,14 @@ fun BottomSheet(
                     )
                     Spacer(modifier = Modifier.weight(1f))
                     Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
-                        tint = MaterialTheme.colorScheme.secondary,
+                        imageVector = Icons.Filled.Help,
+                        contentDescription = "Hilfe",
                         modifier = Modifier
-                            .padding(end = 8.dp)
-                            .size(25.dp)
+                            .size(24.dp)
+                            .clickable { showHelpDialog = true } // Hier klickbar machen
                     )
+
+
                 }
 
                 // headline for image grid
@@ -256,6 +264,34 @@ fun BottomSheet(
                     steps = 4,
                     modifier = Modifier.fillMaxWidth()
                 )
+                val context = LocalContext.current // Move this inside the lambda
+                if (showHelpDialog) {
+                    AlertDialog(
+                        onDismissRequest = { showHelpDialog = false },
+                        confirmButton = {
+                            TextButton(
+                                onClick = {
+
+                                    val pdfIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://dein-link-zur-anleitung.de/anleitung.pdf"))
+                                    context.startActivity(pdfIntent)
+                                    showHelpDialog = false
+                                }
+                            ) {
+                                Text("Anleitung öffnen")
+                            }
+                        },
+                        dismissButton = {
+                            TextButton(onClick = { showHelpDialog = false }) {
+                                Text("Schließen")
+                            }
+                        },
+                        title = { Text("Need Help?") },
+                        text = {
+                            Text("Hier können Sie die Benutzeranleitung herunterladen.")
+                        }
+                    )
+                }
+
             }
         }
     }
