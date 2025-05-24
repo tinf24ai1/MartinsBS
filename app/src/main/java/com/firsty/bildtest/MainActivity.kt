@@ -14,12 +14,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 // Package Intern References
 import com.firsty.bildtest.ui.components.BottomSheet
@@ -54,32 +54,37 @@ class MainActivity : ComponentActivity() {
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Slideshow(imageViewModel: ImageViewModel = ImageViewModel()) {
-    val imageList = imageViewModel.imageList
+fun Slideshow(viewModel: ImageViewModel = viewModel()) {
+    // using images from items.kt
+    val list = viewModel.items
 
+    // keeping track of current image index
     var currentIndex by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
 
+    // manage state of bottom sheet
     val sheetState = rememberModalBottomSheetState(
         skipPartiallyExpanded = true
     )
 
+    // state of the bottom sheets visibility
     var showSheet by remember { mutableStateOf(false) }
 
     // Auto-switch images every 5 seconds
     LaunchedEffect(Unit) {
         while (true) {
             delay(5000L)
-            currentIndex = (currentIndex + 1) % imageList.size
+            currentIndex = (currentIndex + 1) % list.size
         }
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
+            // detect vertical drag gestures to show the bottom sheet
             .pointerInput(Unit) {
                 detectVerticalDragGestures { _, dragAmount ->
-                    if (dragAmount < -50) { // Swipe up
+                    if (dragAmount < -50) {
                         showSheet = true
                         scope.launch {
                             sheetState.show()
@@ -88,18 +93,22 @@ fun Slideshow(imageViewModel: ImageViewModel = ImageViewModel()) {
                 }
             }
     ) {
+        // displayed image
         Image(
-            painter = painterResource(id = imageList[currentIndex]),
-            contentDescription = "Slideshow image",
+            // show image at current index
+            painter = painterResource(id = list[currentIndex].id),
+            // content description for accessibility
+            contentDescription = list[currentIndex].text,
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize()
         )
 
+        // show bottom sheet
         if (showSheet) {
-            BottomSheet(imageViewModel, sheetState) {
+            BottomSheet(viewModel= viewModel, sheetState = sheetState, onClose = {
                 showSheet = false
                 scope.launch { sheetState.hide() }
-            }
+            })
         }
     }
 }
