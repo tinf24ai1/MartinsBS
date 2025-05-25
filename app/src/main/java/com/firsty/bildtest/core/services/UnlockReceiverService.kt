@@ -23,6 +23,8 @@ import com.firsty.bildtest.R
 
 private const val NOTIFICATION_ID_FOREGROUND_SERVICE = 1
 private const val NOTIFICATION_ID_UNLOCK_TAP = 2001
+private const val GROUP_KEY_FOREGROUND = "com.firsty.bildtest.FOREGROUND_GROUP"
+private const val GROUP_KEY_UNLOCK = "com.firsty.bildtest.UNLOCK_GROUP"
 
 /**
  * Service that listens for the device being unlocked and starts the MainActivity.
@@ -127,6 +129,8 @@ class UnlockReceiverService : Service() {
             .setContentText("Monitoring device-unlocks to autostart ScreenSaver")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setOngoing(true)
+            .setGroup(GROUP_KEY_FOREGROUND)
+            .setGroupSummary(true)  // Needed for foreground service notifications
             .build()
     }
 
@@ -149,6 +153,8 @@ class UnlockReceiverService : Service() {
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setGroup(GROUP_KEY_UNLOCK)
+            .setGroupSummary(false)  // Prevents this notification from being a summary
             .build()
 
         if (ActivityCompat.checkSelfPermission(
