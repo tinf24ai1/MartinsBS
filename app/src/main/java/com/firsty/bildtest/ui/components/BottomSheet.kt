@@ -48,6 +48,7 @@ import sh.calvin.reorderable.*
 import com.firsty.bildtest.ui.haptics.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Card
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.mutableStateOf
@@ -57,9 +58,17 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.material.icons.rounded.DragHandle
 import androidx.compose.material3.CardDefaults
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.zIndex
+import com.firsty.bildtest.ui.components.IntervalSlider
+import com.firsty.bildtest.ui.components.TransitionType
+import androidx.compose.material.icons.filled.ZoomIn
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Opacity
+import androidx.compose.material.icons.filled.Slideshow
+import androidx.compose.material.icons.filled.ViewCarousel
 
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,7 +91,8 @@ fun BottomSheet(
     ) {
         // screen height for dynamic height
         val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-        var sliderValue by remember { mutableFloatStateOf(1.0f) }
+
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -242,28 +252,27 @@ fun BottomSheet(
                 // gap below grid
                 Spacer(modifier = Modifier.height(32.dp))
 
-                // animation speed slider headline
-                Text(
-                    text = "Animation Speed",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(bottom = 4.dp)
+                //Interval slider logic in IntervaSlider.kt
+                IntervalSlider(
+                    currentInterval = viewModel.cycleInterval,
+                    onIntervalChange = { viewModel.cycleInterval = it }
                 )
 
-                // current slider value
-                Text(
-                    text = "${String.format("%.1f", sliderValue)}x",
-                    style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(bottom = 4.dp)
+                // transition type selection
+                val selectedTransition = viewModel.transitionType
+
+
+                TransitionType(
+                    selectedIndex = selectedTransition,
+                    onSelectedChange = { viewModel.transitionType = it },
+                    icons = listOf(
+                        Icons.Filled.Slideshow,     // instant
+                        Icons.Filled.Opacity,       // fade
+                        Icons.Filled.ViewCarousel   // slide
+                    ),
+                    labels = listOf("Instant", "Fade", "Slide")
                 )
 
-                // actual slider
-                Slider(
-                    value = sliderValue,
-                    onValueChange = { newValue -> sliderValue = newValue },
-                    valueRange = 0.5f..3.0f,
-                    steps = 4,
-                    modifier = Modifier.fillMaxWidth()
-                )
                 val context = LocalContext.current // Move this inside the lambda
                 if (showHelpDialog) {
                     AlertDialog(
@@ -291,7 +300,6 @@ fun BottomSheet(
                         }
                     )
                 }
-
             }
         }
     }

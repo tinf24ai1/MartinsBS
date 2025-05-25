@@ -24,4 +24,10 @@ class ImageViewModel : ViewModel() {
     fun updateItems(newList: List<Item>) {
         _items = newList
     }
+
+    //Standard-speed slider
+    var cycleInterval by mutableStateOf(10) // Standard: 10 Sekunden
+
+    // Standard-setting for transition animation
+    var transitionType by mutableStateOf(0) // 0 = Instantly, 1 = Fade, 2 = Slide
 }
