@@ -21,6 +21,9 @@ import androidx.core.app.NotificationManagerCompat
 import com.firsty.bildtest.MainActivity
 import com.firsty.bildtest.R
 
+private const val NOTIFICATION_ID_FOREGROUND_SERVICE = 1
+private const val NOTIFICATION_ID_UNLOCK_TAP = 2001
+
 /**
  * Service that listens for the device being unlocked and starts the MainActivity.
  * This service is started by the BootUpReceiver when the device is booted and
@@ -38,20 +41,14 @@ class UnlockReceiverService : Service() {
         Log.d("UnlockService", "Service created")
 
         // Setup foreground notification to prevent the service from being killed
-        createNotificationChannel()
-        startForeground(1, createNotification())
+        createNotificationChannels()
+        startForeground(NOTIFICATION_ID_FOREGROUND_SERVICE, createServiceNotification())
 
         // Define the BroadcastReceiver for when the screen is being unlocked
         unlockReceiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context?, intent: Intent?) {
                 if (intent?.action == Intent.ACTION_USER_PRESENT) {
                     Log.d("UnlockService", "User unlocked the device")
-                    // Old method
-                    /*val launchIntent = Intent(context, MainActivity::class.java).apply {
-                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    }
-                    startActivity(launchIntent)*/
-
                     showUnlockNotification()
                 }
             }
@@ -78,6 +75,13 @@ class UnlockReceiverService : Service() {
      */
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("UnlockService", "Start request received")
+
+        // Always ensure foreground notification is active
+        if (!isNotificationVisible()) {
+            Log.d("UnlockService", "Notification not visible — re-issuing foreground notification")
+            startForeground(NOTIFICATION_ID_FOREGROUND_SERVICE, createServiceNotification())
+        }
+
         return START_STICKY
     }
 
@@ -87,18 +91,28 @@ class UnlockReceiverService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     /**
-     * Create a notification channel for the foreground service to post notifications.
+     * Create notification channels for the foreground service to post notifications.
      * This is required for Android 8.O (API 26) and above.
      */
-    private fun createNotificationChannel() {
+    private fun createNotificationChannels() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val channel = NotificationChannel(
-                "unlock_channel",
-                "Unlock Listener",
+            // Channel for the foreground service to keep service running
+            val serviceChannel = NotificationChannel(
+                "foreground_service_channel",
+                "Unlock Monitor Service",
                 NotificationManager.IMPORTANCE_LOW
             )
+
+            // Channel for the unlock notification to open the app to keep it separate from the service
+            val unlockChannel = NotificationChannel(
+                "unlock_channel",
+                "Open App Action",
+                NotificationManager.IMPORTANCE_HIGH
+            )
+
             val manager = getSystemService(NotificationManager::class.java)
-            manager.createNotificationChannel(channel)
+            manager.createNotificationChannel(serviceChannel)
+            manager.createNotificationChannel(unlockChannel)
         }
     }
 
@@ -107,11 +121,12 @@ class UnlockReceiverService : Service() {
      * This notification is shown in the notification bar while the service is running
      * (to keep it running).
      */
-    private fun createNotification(): Notification {
-        return NotificationCompat.Builder(this, "unlock_channel")
+    private fun createServiceNotification(): Notification {
+        return NotificationCompat.Builder(this, "foreground_service_channel")
             .setContentTitle("ScreenSaver: Unlock monitor")
-            .setContentText("Monitoring device unlocks to start ScreenSaver")
+            .setContentText("Monitoring device-unlocks to autostart ScreenSaver")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setOngoing(true)
             .build()
     }
 
@@ -128,11 +143,12 @@ class UnlockReceiverService : Service() {
         )
 
         val notification = NotificationCompat.Builder(this, "unlock_channel")
-            .setContentTitle("Device Unlocked")
+            .setContentTitle("Screen Saver")
             .setContentText("Tap to open app")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .build()
 
         if (ActivityCompat.checkSelfPermission(
@@ -147,6 +163,14 @@ class UnlockReceiverService : Service() {
             // See the documentation for ActivityCompat#requestPermissions for more details.
             return
         }
-        NotificationManagerCompat.from(this).notify(2001, notification)
+        NotificationManagerCompat.from(this).notify(NOTIFICATION_ID_UNLOCK_TAP, notification)
+    }
+
+    /**
+     * Check if the foreground service notification is currently visible.
+     */
+    private fun isNotificationVisible(): Boolean {
+        val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        return manager.activeNotifications.any { it.id == NOTIFICATION_ID_FOREGROUND_SERVICE }
     }
 }

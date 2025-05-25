@@ -23,6 +23,7 @@ class BootUpReceiver : BroadcastReceiver() {
 
             // Start foreground service, that registers a receiver for ACTION_USER_PRESENT
             // to open the app when the user unlocks the device
+            // TODO: Open also when opening the app manually!!!
             val serviceIntent = Intent(context, UnlockReceiverService::class.java)
             ContextCompat.startForegroundService(context, serviceIntent)
 

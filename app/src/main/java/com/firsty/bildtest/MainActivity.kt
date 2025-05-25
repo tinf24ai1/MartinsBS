@@ -1,6 +1,7 @@
 package com.firsty.bildtest
 
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -18,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -30,16 +30,14 @@ import kotlinx.coroutines.launch
 import com.firsty.bildtest.ui.components.BottomSheet
 import com.firsty.bildtest.ui.theme.BildTestTheme
 import com.firsty.bildtest.viewmodel.ImageViewModel
+import com.firsty.bildtest.core.services.UnlockReceiverService
 
-// TODO: App crashes on automatic startup (BildTest keeps stopping)
-// TODO: Notification isn't displayed, even though manually enabled
-// TODO: NotificationManager isn't displayed
 // TODO: Check and fix errors and warnings in Logcat
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Log.i("MainActivity", "starting app with PID " + android.os.Process.myPid())
+        Log.d("MainActivity", "starting app with PID " + android.os.Process.myPid())
 
         // App in Fullscreen anzeigen
         val windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
@@ -60,23 +58,35 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        // Berechtigungen von User anfordern
+        // Berechtigungen von User anfordern, wenn nicht schon erteilt
         requestNotificationPermission()
     }
 
-    // Berechtigungs-Launcher konfigurieren
+    override fun onResume() {
+        super.onResume()
+        Log.d("MainActivity", "onResume called")
+        // Wenn der UnlockReceiverService zum Öffnen der App nicht läuft, dann starten
+        startUnlockService()
+
+    }
+
+    /**
+     * Berechtigungs-Launcher konfigurieren
+     */
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted:Boolean ->
         if (isGranted) {
             Log.d("MainActivity", "Permission granted")
         } else {
-            // TODO: Popup anzeigen, dass die Berechtigung benötigt wird, damit die APP autostarten kann
+            // TODO: Popup anzeigen, dass die Berechtigung benötigt wird, damit die APP Autostarten kann
             Log.d("MainActivity", "Permission denied")
         }
     }
 
-    // Berechtigungen für "Nachrichten anzeigen" anfordern
+    /**
+     * Berechtigungen für "Nachrichten anzeigen" anfordern
+     */
     private fun requestNotificationPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
@@ -87,6 +97,16 @@ class MainActivity : ComponentActivity() {
                 requestPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
             }
         }
+    }
+
+    /**
+     * Startet den UnlockReceiverService. Wenn der Service bereits läuft wird dieser überprüfen,
+     * ob die Notification angezeigt wird, und wenn nicht, zeigt sie an.
+     */
+    private fun startUnlockService() {
+        Log.d("MainActivity", "Trying to start UnlockReceiverService...")
+        val intent = Intent(this, UnlockReceiverService::class.java)
+        ContextCompat.startForegroundService(this, intent)
     }
 }
 
