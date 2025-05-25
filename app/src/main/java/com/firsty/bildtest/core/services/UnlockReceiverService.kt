@@ -20,6 +20,7 @@ import androidx.core.app.NotificationManagerCompat
 
 import com.firsty.bildtest.MainActivity
 import com.firsty.bildtest.R
+import com.firsty.bildtest.core.util.Strings
 
 private const val NOTIFICATION_ID_FOREGROUND_SERVICE = 1
 private const val NOTIFICATION_ID_UNLOCK_TAP = 2001
@@ -110,7 +111,11 @@ class UnlockReceiverService : Service() {
                 "unlock_channel",
                 "Open App Action",
                 NotificationManager.IMPORTANCE_HIGH
-            )
+            ).apply {
+                description = "Channel for notifications when the device is unlocked"
+                enableLights(true)
+                enableVibration(true)
+            }
 
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(serviceChannel)
@@ -125,8 +130,8 @@ class UnlockReceiverService : Service() {
      */
     private fun createServiceNotification(): Notification {
         return NotificationCompat.Builder(this, "foreground_service_channel")
-            .setContentTitle("ScreenSaver: Unlock monitor")
-            .setContentText("Monitoring device-unlocks to autostart ScreenSaver")
+            .setContentTitle(Strings.FOREGROUND_SERVICE_TITLE)
+            .setContentText(Strings.FOREGROUND_SERVICE_TEXT)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setOngoing(true)
             .setGroup(GROUP_KEY_FOREGROUND)
@@ -146,15 +151,20 @@ class UnlockReceiverService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
+        // TODO: When the notifications are displayed at first they are not summarized
+        //       but when the notification drawer is opened again, they are summarized.
         val notification = NotificationCompat.Builder(this, "unlock_channel")
-            .setContentTitle("Screen Saver")
-            .setContentText("Tap to open app")
+            .setContentTitle(Strings.UNLOCK_NOTIFICATION_TITLE)
+            .setContentText(Strings.UNLOCK_NOTIFICATION_TEXT)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
-            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setPriority(NotificationCompat.PRIORITY_HIGH) // Must be high to show heads-up notification
+            .setDefaults(NotificationCompat.DEFAULT_ALL)   // Makes it vibrate/make sound
+            .setCategory(NotificationCompat.CATEGORY_REMINDER) // Helps system know it's important
             .setGroup(GROUP_KEY_UNLOCK)
             .setGroupSummary(false)  // Prevents this notification from being a summary
+            .setFullScreenIntent(pendingIntent, true) // For heads-up notification guarantee
             .build()
 
         if (ActivityCompat.checkSelfPermission(
