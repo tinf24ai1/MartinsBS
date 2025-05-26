@@ -15,7 +15,6 @@ class ImageViewModel(private val context: Context) : ViewModel() {
 
     private val prefs: SharedPreferences = context.getSharedPreferences("image_prefs", Context.MODE_PRIVATE)
 
-    // Keep this mutableStateListOf to trigger Compose recompositions on changes
     private val _imageList = mutableStateListOf<Uri>()
     val imageList = _imageList
 
@@ -29,7 +28,6 @@ class ImageViewModel(private val context: Context) : ViewModel() {
             val uris = it.mapNotNull { uriString ->
                 try {
                     val uri = Uri.parse(uriString)
-                    // 👇 Request persisted permissions again
                     context.contentResolver.takePersistableUriPermission(
                         uri,
                         Intent.FLAG_GRANT_READ_URI_PERMISSION
@@ -55,9 +53,13 @@ class ImageViewModel(private val context: Context) : ViewModel() {
         _imageList.addAll(newUris)
         saveUris()
     }
+
+    fun removeImages(urisToRemove: List<Uri>) {
+        _imageList.removeAll(urisToRemove.toSet())
+        saveUris()
+    }
 }
 
-// Factory to create ViewModel with Context parameter
 class ImageViewModelFactory(private val context: Context) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ImageViewModel::class.java)) {

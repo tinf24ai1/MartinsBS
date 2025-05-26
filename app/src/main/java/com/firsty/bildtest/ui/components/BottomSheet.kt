@@ -3,18 +3,19 @@ package com.firsty.bildtest.ui.components
 import android.annotation.SuppressLint
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
@@ -30,9 +31,36 @@ fun BottomSheet(
     onClose: () -> Unit,
     onAddImagesClick: () -> Unit
 ) {
-
-    // Directly observe the mutableStateListOf - recomposes when list changes
     val imageList = imageViewModel.imageList
+    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+    var sliderValue by remember { mutableStateOf(1.0f) }
+
+    var isDeleteMode by remember { mutableStateOf(false) }
+    val selectedForDeletion = remember { mutableStateListOf<android.net.Uri>() }
+    var showDeleteAllDialog by remember { mutableStateOf(false) }
+
+    if (showDeleteAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAllDialog = false },
+            title = { Text(text = "Delete All Images?") },
+            text = { Text("Are you sure you want to delete ALL images? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    imageViewModel.removeImages(imageList)
+                    selectedForDeletion.clear()
+                    isDeleteMode = false
+                    showDeleteAllDialog = false
+                }) {
+                    Text("Delete All")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAllDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     ModalBottomSheet(
         onDismissRequest = onClose,
@@ -40,9 +68,6 @@ fun BottomSheet(
         containerColor = MaterialTheme.colorScheme.background,
         dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
-        val screenHeight = LocalConfiguration.current.screenHeightDp.dp
-        var sliderValue by remember { mutableStateOf(1.0f) }
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -50,7 +75,6 @@ fun BottomSheet(
                 .padding(16.dp)
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Start,
@@ -78,17 +102,64 @@ fun BottomSheet(
                         .padding(bottom = 16.dp)
                 ) {
                     Text(
-                        text = "Selected Images",
+                        text = if (isDeleteMode) "Tap images to delete" else "Selected Images",
                         style = MaterialTheme.typography.bodyLarge,
                         modifier = Modifier.weight(1f)
                     )
-                    IconButton(onClick = onAddImagesClick) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(25.dp)
-                        )
+
+                    if (isDeleteMode) {
+                        IconButton(onClick = {
+                            selectedForDeletion.clear()
+                            isDeleteMode = false
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Cancel Delete",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        IconButton(onClick = {
+                            imageViewModel.removeImages(selectedForDeletion)
+                            selectedForDeletion.clear()
+                            isDeleteMode = false
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Confirm Delete",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = onAddImagesClick) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(25.dp)
+                            )
+                        }
+                        IconButton(onClick = {
+                            isDeleteMode = true
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Images",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(25.dp)
+                            )
+                        }
+                        IconButton(onClick = {
+                            if (imageList.isNotEmpty()) {
+                                showDeleteAllDialog = true
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Delete All Images",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(25.dp)
+                            )
+                        }
                     }
                 }
 
@@ -109,15 +180,45 @@ fun BottomSheet(
                     ) {
                         items(imageList.size) { index ->
                             val imageUri = imageList[index]
-                            Image(
-                                painter = rememberAsyncImagePainter(imageUri),
-                                contentDescription = "Selected image",
-                                contentScale = ContentScale.Crop,
+                            val isSelected = selectedForDeletion.contains(imageUri)
+
+                            Box(
                                 modifier = Modifier
                                     .padding(4.dp)
                                     .aspectRatio(1f)
                                     .clip(RoundedCornerShape(12.dp))
-                            )
+                                    .clickable(enabled = isDeleteMode) {
+                                        if (isSelected) {
+                                            selectedForDeletion.remove(imageUri)
+                                        } else {
+                                            selectedForDeletion.add(imageUri)
+                                        }
+                                    }
+                            ) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(imageUri),
+                                    contentDescription = "Selected image",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.matchParentSize()
+                                )
+
+                                if (isDeleteMode && isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .background(Color.Black.copy(alpha = 0.4f))
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Selected",
+                                        tint = Color.White,
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(6.dp)
+                                            .size(20.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -129,7 +230,7 @@ fun BottomSheet(
                     value = sliderValue,
                     onValueChange = {
                         sliderValue = it
-                        // Implement slideshow speed control here if you want
+                        // Optional: apply to slideshow timing
                     },
                     valueRange = 0.5f..5f,
                     steps = 9,
