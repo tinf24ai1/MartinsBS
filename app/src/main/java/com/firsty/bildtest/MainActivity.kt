@@ -3,12 +3,14 @@ package com.firsty.bildtest
 import android.annotation.SuppressLint
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
@@ -41,6 +43,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalConfiguration
+import coil.compose.rememberAsyncImagePainter
 
 
 // Package Intern References
@@ -54,6 +57,7 @@ import kotlin.text.get
 import kotlin.times
 
 class MainActivity : ComponentActivity() {
+    private val imageViewModel: ImageViewModel by viewModels()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d("MainActivity", "starting app with PID " + android.os.Process.myPid())
@@ -65,6 +69,7 @@ class MainActivity : ComponentActivity() {
         windowInsetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         // System-Leisten verstecken
         windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+        imageViewModel.loadItems(this)
 
         setContent {
             BildTestTheme {
@@ -72,7 +77,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    Slideshow()
+                    Slideshow(viewModel(), pickImagesLauncher)
                 }
             }
         }
@@ -80,6 +85,27 @@ class MainActivity : ComponentActivity() {
         // Berechtigungen von User anfordern, wenn nicht schon erteilt
         requestNotificationPermission()
     }
+
+    // ✅ Correct contract for persistable permission
+    private val pickImagesLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris: List<Uri> ->
+        if (uris.isNotEmpty()) {
+            uris.forEach { uri ->
+                try {
+                    contentResolver.takePersistableUriPermission(
+                        uri,
+                        Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    )
+                } catch (e: SecurityException) {
+                    e.printStackTrace()
+                }
+            }
+            imageViewModel.addImagesFromUris(uris)
+            imageViewModel.saveItems(this)
+        }
+    }
+
 
     override fun onResume() {
         super.onResume()
@@ -132,7 +158,7 @@ class MainActivity : ComponentActivity() {
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Slideshow(viewModel: ImageViewModel = viewModel()) {
+fun Slideshow(viewModel: ImageViewModel = viewModel(), pickImagesLauncher: androidx.activity.result.ActivityResultLauncher<Array<String>>) {
     // using images from items.kt
     val list = viewModel.items
 
@@ -156,10 +182,14 @@ fun Slideshow(viewModel: ImageViewModel = viewModel()) {
     LaunchedEffect(viewModel.cycleInterval) {
         while (true) {
             delay(viewModel.cycleInterval * 1000L)
-            previousIndex = currentIndex
-            currentIndex = (currentIndex + 1) % list.size
+
+            if (list.isNotEmpty()) {
+                previousIndex = currentIndex
+                currentIndex = (currentIndex + 1) % list.size
+            }
         }
     }
+
 
 
 
@@ -182,97 +212,110 @@ fun Slideshow(viewModel: ImageViewModel = viewModel()) {
 
         // displayed image
         // depending on the selected transition type
-        when (viewModel.transitionType) {
-            0 -> { // Instantly
-                Image(
-                    painter = painterResource(id = list[currentIndex].id),
-                    contentDescription = list[currentIndex].text,
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
-
-            1 -> { // Fade
-                Crossfade(
-                    targetState = currentIndex,
-                    animationSpec = tween(durationMillis = 3000, easing = LinearOutSlowInEasing)
-                ) { index ->
+        if(list.isNotEmpty()){
+            when (viewModel.transitionType) {
+                0 -> { // Instantly
                     Image(
-                        painter = painterResource(id = list[index].id),
-                        contentDescription = list[index].text,
+                        painter = rememberAsyncImagePainter(list[currentIndex].uri),
+                        contentDescription = list[currentIndex].text,
                         contentScale = ContentScale.Fit,
                         modifier = Modifier.fillMaxSize()
                     )
                 }
 
-            }
-
-
-            2 -> { // Slide from left
-                val slideProgress = remember(currentIndex) { Animatable(-1f) }
-
-                var visibleNewImage by remember { mutableStateOf(false) }
-
-                LaunchedEffect(currentIndex) {
-                    visibleNewImage = true
-                    slideProgress.animateTo(
-                        targetValue = 0f,
-                        animationSpec = tween(durationMillis = 1000, easing = LinearOutSlowInEasing)
-                    )
-                }
-
-
-                val screenWidthPx = with(density) {
-                    LocalConfiguration.current.screenWidthDp.dp.toPx()
-                }
-
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .clipToBounds()
-                ) {
-                    if (slideProgress.value < 1f) {
-                        // Old image: starts at 0, moves right
+                1 -> { // Fade
+                    Crossfade(
+                        targetState = currentIndex,
+                        animationSpec = tween(durationMillis = 3000, easing = LinearOutSlowInEasing)
+                    ) { index ->
                         Image(
-                            painter = painterResource(id = list[previousIndex].id),
-                            contentDescription = list[previousIndex].text,
+                            painter = rememberAsyncImagePainter(list[index].uri),
+                            contentDescription = list[index].text,
                             contentScale = ContentScale.Fit,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .offset {
-                                    IntOffset((slideProgress.value * screenWidthPx).roundToInt(), 0)
-                                }
-
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
 
-                    if (visibleNewImage) {
-                        // New image: starts left, moves to center
-                        Image(
-                            painter = painterResource(id = list[currentIndex].id),
-                            contentDescription = list[currentIndex].text,
-                            contentScale = ContentScale.Fit,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .offset {
-                                    IntOffset(((slideProgress.value - 1) * screenWidthPx).roundToInt(), 0)
-                                }
+                }
 
+
+                2 -> { // Slide from left
+                    val slideProgress = remember(currentIndex) { Animatable(-1f) }
+
+                    var visibleNewImage by remember { mutableStateOf(false) }
+
+                    LaunchedEffect(currentIndex) {
+                        visibleNewImage = true
+                        slideProgress.animateTo(
+                            targetValue = 0f,
+                            animationSpec = tween(
+                                durationMillis = 1000,
+                                easing = LinearOutSlowInEasing
+                            )
                         )
+                    }
+
+
+                    val screenWidthPx = with(density) {
+                        LocalConfiguration.current.screenWidthDp.dp.toPx()
+                    }
+
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clipToBounds()
+                    ) {
+                        if (slideProgress.value < 1f) {
+                            // Old image: starts at 0, moves right
+                            Image(
+                                painter = rememberAsyncImagePainter(list[previousIndex].uri),
+                                contentDescription = list[previousIndex].text,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .offset {
+                                        IntOffset(
+                                            (slideProgress.value * screenWidthPx).roundToInt(),
+                                            0
+                                        )
+                                    }
+
+                            )
+                        }
+
+                        if (visibleNewImage) {
+                            // New image: starts left, moves to center
+                            Image(
+                                painter = rememberAsyncImagePainter(list[currentIndex].uri),
+                                contentDescription = list[currentIndex].text,
+                                contentScale = ContentScale.Fit,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .offset {
+                                        IntOffset(
+                                            ((slideProgress.value - 1) * screenWidthPx).roundToInt(),
+                                            0
+                                        )
+                                    }
+                            )
+                        }
                     }
                 }
             }
-
-
         }
     }
+
 
     // show bottom sheet
     if (showSheet) {
         BottomSheet(viewModel= viewModel, sheetState = sheetState, onClose = {
             showSheet = false
             scope.launch { sheetState.hide() }
+        },
+                onAddImagesClick = {
+            // ✅ Launch with OpenMultipleDocuments
+            pickImagesLauncher.launch(arrayOf("image/*"))
         })
     }
 }

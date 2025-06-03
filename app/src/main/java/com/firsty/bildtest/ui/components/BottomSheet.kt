@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.firsty.bildtest.viewmodel.ImageViewModel
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TextButton
@@ -48,6 +49,13 @@ import sh.calvin.reorderable.*
 import com.firsty.bildtest.ui.haptics.*
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Card
 import androidx.compose.material3.IconButton
@@ -69,6 +77,9 @@ import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Opacity
 import androidx.compose.material.icons.filled.Slideshow
 import androidx.compose.material.icons.filled.ViewCarousel
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.ui.graphics.Color
+import coil.compose.rememberAsyncImagePainter
 
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -76,8 +87,37 @@ import androidx.compose.material.icons.filled.ViewCarousel
 fun BottomSheet(
     viewModel: ImageViewModel,
     sheetState: SheetState,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onAddImagesClick: () -> Unit
 ) {
+    val context = LocalContext.current
+    val list = viewModel.items
+    var isDeleteMode by remember { mutableStateOf(false) }
+    val selectedForDeletion = remember { mutableStateListOf<android.net.Uri>() }
+    var showDeleteAllDialog by remember { mutableStateOf(false) }
+    if (showDeleteAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAllDialog = false },
+            title = { Text(text = "Delete All Images?") },
+            text = { Text("Are you sure you want to delete ALL images? This action cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+
+                    viewModel.removeImages(list,context)
+                    selectedForDeletion.clear()
+                    isDeleteMode = false
+                    showDeleteAllDialog = false
+                }) {
+                    Text("Delete All")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAllDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     var showHelpDialog by remember { mutableStateOf(false) }
 
@@ -124,16 +164,79 @@ fun BottomSheet(
 
                 }
 
-                // headline for image grid
-                Text(
-                    text = "Selected Images",
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp)
+                ) {
+                    Text(
+                        text = if (isDeleteMode) "Tap images to delete" else "Selected Images",
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    if (isDeleteMode) {
+                        IconButton(onClick = {
+                            selectedForDeletion.clear()
+                            isDeleteMode = false
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Cancel Delete",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                        IconButton(onClick = {
+                            val itemsToDelete = list.filter { selectedForDeletion.contains(it.uri) }
+                            viewModel.removeImages(itemsToDelete, context)
+                            selectedForDeletion.clear()
+                            isDeleteMode = false
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = "Confirm Delete",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = onAddImagesClick) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = "Add",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(25.dp)
+                            )
+                        }
+                        IconButton(onClick = {
+                            isDeleteMode = true
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Delete Images",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(25.dp)
+                            )
+                        }
+                        IconButton(onClick = {
+                            if (list.isNotEmpty()) {
+                                showDeleteAllDialog = true
+                            }
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Delete All Images",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(25.dp)
+                            )
+                        }
+                    }
+                }
+
 
                 // image grid with reorderable items
                 val haptic = rememberReorderHapticFeedback()
-                val list = viewModel.items
+
 
                 val lazyGridState = rememberLazyGridState()
                 // logic for reordering items
@@ -141,9 +244,10 @@ fun BottomSheet(
                     rememberReorderableLazyGridState(lazyGridState) { from, to ->
                         viewModel.updateItems(list.toMutableList().apply {
                             add(to.index, removeAt(from.index))
-                        })
+                        },context)
                         haptic.performHapticFeedback(ReorderHapticFeedbackType.MOVE)
                     }
+
 
 
                 LazyVerticalGrid(
@@ -151,91 +255,76 @@ fun BottomSheet(
                     columns = GridCells.Fixed(4),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height((100.dp * 2))
+                        .height(200.dp)
                         .padding(10.dp),
                     userScrollEnabled = true
                 ) {
-                    // function iterates over the list and displays items; item.id is the key; each item is a picture
                     itemsIndexed(list, key = { _, item -> item.id }) { index, item ->
-                        // makes the current item reorderable
+                        val imageUri = item.uri // or however your list is structured
+                        val isSelected = selectedForDeletion.contains(imageUri)
+
                         ReorderableItem(reorderableLazyGridState, item.id) { isDragging ->
                             val interactionSource = remember { MutableInteractionSource() }
-                            // UI element for each picture
-                            Card(
-                                onClick = {},
-                                modifier = Modifier
-                                    .shadow(3.dp, shape = MaterialTheme.shapes.medium)
-                                    .height(96.dp)
-                                    .padding(1.dp) // Abstand zwischen den Cards
-                                    .semantics {
-                                        // accessibility actions, not necessary for basic functionality
-                                        customActions = listOf(
-                                            CustomAccessibilityAction(
-                                                label = "Move Before",
-                                                action = {
-                                                    if (index > 0) {
-                                                        viewModel.updateItems(list.toMutableList().apply {
-                                                            add(index - 1, removeAt(index))
-                                                        })
-                                                        true
-                                                    } else false
-                                                }
-                                            ),
-                                            CustomAccessibilityAction(
-                                                label = "Move After",
-                                                action = {
-                                                    if (index < list.size - 1) {
-                                                        viewModel.updateItems(list.toMutableList().apply {
-                                                            add(index + 1, removeAt(index))
-                                                        })
-                                                        true
-                                                    } else false
-                                                }
-                                            ),
-                                        )
-                                    },
-                                interactionSource = interactionSource,
-                                shape = MaterialTheme.shapes.medium,
-                                colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.surface
-                                ),
-                            ) {
-                                // box that fills the card element and contains image and drag icon
-                                Box(Modifier.fillMaxSize()) {
-                                    // image which is shown in the box
-                                    Image(
-                                        painter = painterResource(id = item.id),
-                                        contentDescription = item.text,
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            //.padding(2.dp)
-                                            .clip(MaterialTheme.shapes.medium),
-                                            //.border(1.dp, MaterialTheme.colorScheme.primary),
-                                    contentScale = ContentScale.Crop
-                                    )
 
-                                    // IconButton which is used to drag the item
+                            Box(
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .size(80.dp)
+                                    .shadow(4.dp, RoundedCornerShape(12.dp))
+                                    .then(
+                                        if (!isDeleteMode)
+                                            Modifier.shadow(3.dp, shape = MaterialTheme.shapes.medium)
+                                        else Modifier
+                                    )
+                                    .clickable(enabled = isDeleteMode) {
+                                        if (isSelected) {
+                                            selectedForDeletion.remove(imageUri)
+                                        } else {
+                                            selectedForDeletion.add(imageUri)
+                                        }
+                                    }
+                            ) {
+                                Image(
+                                    painter = rememberAsyncImagePainter(imageUri),
+                                    contentDescription = item.text,
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.matchParentSize()
+                                )
+
+                                if (isDeleteMode && isSelected) {
+                                    Box(
+                                        modifier = Modifier
+                                            .matchParentSize()
+                                            .background(Color.Black.copy(alpha = 0.4f))
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Selected",
+                                        tint = Color.White,
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .padding(6.dp)
+                                            .size(20.dp)
+                                    )
+                                }
+
+                                if (!isDeleteMode) {
                                     IconButton(
                                         modifier = Modifier
                                             .align(Alignment.TopEnd)
                                             .zIndex(1f)
                                             .draggableHandle(
                                                 onDragStarted = {
-                                                    haptic.performHapticFeedback(
-                                                        ReorderHapticFeedbackType.START
-                                                    )
+                                                    haptic.performHapticFeedback(ReorderHapticFeedbackType.START)
                                                 },
                                                 onDragStopped = {
-                                                    haptic.performHapticFeedback(
-                                                        ReorderHapticFeedbackType.END
-                                                    )
+                                                    haptic.performHapticFeedback(ReorderHapticFeedbackType.END)
                                                 },
                                                 interactionSource = interactionSource,
                                             )
                                             .clearAndSetSemantics { },
                                         onClick = {},
                                     ) {
-                                        // actual drag icon
                                         Icon(
                                             imageVector = Icons.Rounded.DragHandle,
                                             contentDescription = "Drag Handle",
@@ -248,6 +337,8 @@ fun BottomSheet(
                         }
                     }
                 }
+
+
 
                 // gap below grid
                 Spacer(modifier = Modifier.height(32.dp))
