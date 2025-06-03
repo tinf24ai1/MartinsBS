@@ -56,6 +56,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CleaningServices
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material3.Card
 import androidx.compose.material3.IconButton
@@ -224,7 +225,7 @@ fun BottomSheet(
                             }
                         }) {
                             Icon(
-                                imageVector = Icons.Default.Refresh,
+                                imageVector = Icons.Filled.CleaningServices,
                                 contentDescription = "Delete All Images",
                                 tint = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.size(25.dp)
@@ -256,6 +257,7 @@ fun BottomSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(200.dp)
+                        .background(color = Color.LightGray, shape = RoundedCornerShape(12.dp))
                         .padding(10.dp),
                     userScrollEnabled = true
                 ) {
