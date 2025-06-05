@@ -9,7 +9,7 @@ object Strings {
     const val FOREGROUND_SERVICE_TEXT = "Monitoring unlocks to autostart ScreenSaver"
 
     // Unlock Notification
-    const val UNLOCK_NOTIFICATION_TITLE = "Do you want to see a cute cat?"
+    const val UNLOCK_NOTIFICATION_TITLE = "Do you want to open MBS?"
     const val UNLOCK_NOTIFICATION_TEXT = "Tap to open"
 }
 

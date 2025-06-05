@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.firsty.bildtest.viewmodel.ImageViewModel
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.AlertDialog
@@ -80,7 +81,10 @@ import androidx.compose.material.icons.filled.Slideshow
 import androidx.compose.material.icons.filled.ViewCarousel
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.graphics.Color
+import androidx.core.content.FileProvider
 import coil.compose.rememberAsyncImagePainter
+import java.io.File
+import java.io.FileOutputStream
 
 @SuppressLint("DefaultLocale")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -373,15 +377,41 @@ fun BottomSheet(
                         confirmButton = {
                             TextButton(
                                 onClick = {
+                                    try {
+                                        val inputStream = context.assets.open("manual.pdf")
+                                        val outFile = File(context.getExternalFilesDir(null), "manual.pdf")
 
-                                    val pdfIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://dein-link-zur-anleitung.de/anleitung.pdf"))
-                                    context.startActivity(pdfIntent)
+                                        val outputStream = FileOutputStream(outFile)
+                                        inputStream.copyTo(outputStream)
+
+                                        inputStream.close()
+                                        outputStream.close()
+
+                                        val uri = FileProvider.getUriForFile(
+                                            context,
+                                            "${context.packageName}.provider",
+                                            outFile
+                                        )
+
+                                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                                            setDataAndType(uri, "application/pdf")
+                                            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                                        }
+
+                                        context.startActivity(intent)
+                                    } catch (e: Exception) {
+                                        e.printStackTrace()
+                                        Toast.makeText(context, "Fehler beim Öffnen der PDF", Toast.LENGTH_SHORT).show()
+                                    }
+
                                     showHelpDialog = false
                                 }
+
                             ) {
                                 Text("Anleitung öffnen")
                             }
-                        },
+                        }
+                        ,
                         dismissButton = {
                             TextButton(onClick = { showHelpDialog = false }) {
                                 Text("Schließen")
