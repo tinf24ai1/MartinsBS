@@ -52,7 +52,6 @@ import com.firsty.bildtest.ui.theme.BildTestTheme
 import com.firsty.bildtest.viewmodel.ImageViewModel
 import com.firsty.bildtest.core.services.UnlockReceiverService
 
-// TODO: Check and fix errors and warnings in Logcat
 import kotlin.text.get
 import kotlin.times
 
@@ -124,7 +123,6 @@ class MainActivity : ComponentActivity() {
         if (isGranted) {
             Log.d("MainActivity", "Permission granted")
         } else {
-            // TODO: Popup anzeigen, dass die Berechtigung benötigt wird, damit die APP Autostarten kann
             Log.d("MainActivity", "Permission denied")
         }
     }

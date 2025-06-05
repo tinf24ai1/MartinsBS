@@ -21,6 +21,7 @@ import androidx.core.app.NotificationManagerCompat
 import com.firsty.bildtest.MainActivity
 import com.firsty.bildtest.R
 import com.firsty.bildtest.core.util.Strings
+import me.leolin.shortcutbadger.ShortcutBadger
 
 private const val NOTIFICATION_ID_FOREGROUND_SERVICE = 1
 private const val NOTIFICATION_ID_UNLOCK_TAP = 2001
@@ -44,7 +45,7 @@ class UnlockReceiverService : Service() {
         Log.d("UnlockService", "Service created")
 
         // Setup foreground notification to prevent the service from being killed
-        createNotificationChannels()
+        createNotificationChannels(this)
         startForeground(NOTIFICATION_ID_FOREGROUND_SERVICE, createServiceNotification())
 
         // Define the BroadcastReceiver for when the screen is being unlocked
@@ -97,14 +98,21 @@ class UnlockReceiverService : Service() {
      * Create notification channels for the foreground service to post notifications.
      * This is required for Android 8.O (API 26) and above.
      */
-    private fun createNotificationChannels() {
+    private fun createNotificationChannels(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             // Channel for the foreground service to keep service running
             val serviceChannel = NotificationChannel(
                 "foreground_service_channel",
                 "Unlock Monitor Service",
                 NotificationManager.IMPORTANCE_LOW
-            )
+            ).apply {
+                description = "Channel for the Unlock Receiver Service to run in the foreground"
+                enableLights(false)
+                enableVibration(false)
+                // Try to disable showing badge on the app icon showing the number of notifications
+                // Only works reliably on Android 8.0 on Google and Samsung devices
+                setShowBadge(false)
+            }
 
             // Channel for the unlock notification to open the app to keep it separate from the service
             val unlockChannel = NotificationChannel(
@@ -119,6 +127,7 @@ class UnlockReceiverService : Service() {
 
             val manager = getSystemService(NotificationManager::class.java)
             manager.createNotificationChannel(serviceChannel)
+            ShortcutBadger.removeCount(context)
             manager.createNotificationChannel(unlockChannel)
         }
     }
@@ -132,7 +141,7 @@ class UnlockReceiverService : Service() {
         return NotificationCompat.Builder(this, "foreground_service_channel")
             .setContentTitle(Strings.FOREGROUND_SERVICE_TITLE)
             .setContentText(Strings.FOREGROUND_SERVICE_TEXT)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.small_icon)
             .setOngoing(true)
             .setGroup(GROUP_KEY_FOREGROUND)
             .setGroupSummary(true)  // Needed for foreground service notifications
@@ -151,12 +160,10 @@ class UnlockReceiverService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        // TODO: When the notifications are displayed at first they are not summarized
-        //       but when the notification drawer is opened again, they are summarized.
         val notification = NotificationCompat.Builder(this, "unlock_channel")
             .setContentTitle(Strings.UNLOCK_NOTIFICATION_TITLE)
             .setContentText(Strings.UNLOCK_NOTIFICATION_TEXT)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setSmallIcon(R.drawable.small_icon)
             .setContentIntent(pendingIntent)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH) // Must be high to show heads-up notification
@@ -171,14 +178,7 @@ class UnlockReceiverService : Service() {
                 this,
                 Manifest.permission.POST_NOTIFICATIONS
             ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            // TODO: Consider calling ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //      public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults)
-            // to handle the case where the user grants the permission.
-            // See the documentation for ActivityCompat#requestPermissions for more details.
-            return
-        }
+        ) { return }
         NotificationManagerCompat.from(this).notify(NOTIFICATION_ID_UNLOCK_TAP, notification)
     }
 

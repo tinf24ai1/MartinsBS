@@ -51,6 +51,7 @@ android {
 dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation("io.coil-kt:coil-compose:2.4.0")
+    implementation("me.leolin:ShortcutBadger:1.1.22@aar")
     implementation("androidx.compose.material:material-icons-extended")
     implementation("sh.calvin.reorderable:reorderable:2.4.3")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
